@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>go2_isaac_ros2</name>
+  <version>0.1.0</version>
+  <description>Low level simulation of a Unitree Go2 in Isaac Sim using ROS2 for control.</description>
+  <maintainer email="jake.j.levy@gmail.com">Jacob Levy</maintainer>
+  <license>Apache 2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_python</buildtool_depend>
+
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
