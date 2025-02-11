@@ -14,6 +14,22 @@ from isaaclab.managers import ObservationTermCfg as ObsTerm
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 
 
+JOINT_NAMES = [
+    "FR_hip_joint",
+    "FR_thigh_joint",
+    "FR_calf_joint",
+    "FL_hip_joint",
+    "FL_thigh_joint",
+    "FL_calf_joint",
+    "RR_hip_joint",
+    "RR_thigh_joint",
+    "RR_calf_joint",
+    "RL_hip_joint",
+    "RL_thigh_joint",
+    "RL_calf_joint",
+]
+JOINT_STIFFNESS = 100.0
+
 action_global = torch.zeros((1, 12))
 
 
@@ -96,7 +112,10 @@ class ActionsCfg:
     """Action specifications for the MDP."""
 
     joint_pos = mdp.JointPositionActionCfg(
-        asset_name="robot", joint_names=[".*"], use_default_offset=False
+        asset_name="robot",
+        joint_names=JOINT_NAMES,
+        preserve_order=True,
+        use_default_offset=False,
     )
 
 
@@ -132,4 +151,12 @@ class UnitreeGo2CustomEnvCfg(LocomotionVelocityRoughEnvCfg):
         # post init of parent
         super().__post_init__()
 
-        self.scene.robot = UNITREE_GO2_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        dc_motor_cfg = UNITREE_GO2_CFG.actuators["base_legs"]
+        dc_motor_cfg = dc_motor_cfg.replace(
+            stiffness=JOINT_STIFFNESS,
+        )
+
+        self.scene.robot = UNITREE_GO2_CFG.replace(
+            prim_path="{ENV_REGEX_NS}/Robot",
+            actuators={"base_legs": dc_motor_cfg},
+        )

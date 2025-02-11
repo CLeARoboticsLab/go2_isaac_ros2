@@ -10,7 +10,7 @@ import go2_isaac_ros2.env
 from go2_isaac_ros2.env import UnitreeGo2CustomEnvCfg
 from isaaclab.envs import ManagerBasedEnv
 import rclpy
-from go2_isaac_ros2.ros import add_action_sub
+from go2_isaac_ros2.ros import add_lowcmd_sub
 
 
 def run_sim():
@@ -25,7 +25,7 @@ def run_sim():
 
     # start ros2 nodes
     rclpy.init()
-    add_action_sub()
+    add_lowcmd_sub()
 
     while simulation_app.is_running():
         action = go2_isaac_ros2.env.get_action(env)
