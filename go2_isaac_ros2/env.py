@@ -1,5 +1,6 @@
 from dataclasses import MISSING
 from typing import Literal
+import torch
 
 from isaaclab.utils import configclass
 import isaaclab.sim as sim_utils
@@ -11,6 +12,19 @@ from isaaclab_assets.robots.unitree import UNITREE_GO2_CFG
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
+
+
+action_global = torch.zeros((1, 12))
+
+
+def set_action(action: torch.Tensor) -> None:
+    global action_global
+    action_global = action
+
+
+def get_action(env: ManagerBasedEnvCfg) -> torch.Tensor:
+    global action_global
+    return action_global.to(env.device)
 
 
 @configclass

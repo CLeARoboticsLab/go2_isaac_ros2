@@ -6,9 +6,11 @@ app_launcher = AppLauncher()
 simulation_app = app_launcher.app
 
 import omni
+import go2_isaac_ros2.env
 from go2_isaac_ros2.env import UnitreeGo2CustomEnvCfg
 from isaaclab.envs import ManagerBasedEnv
-import torch
+import rclpy
+from go2_isaac_ros2.ros import add_action_sub
 
 
 def run_sim():
@@ -21,6 +23,10 @@ def run_sim():
     # reset environment
     obs, _ = env.reset()
 
+    # start ros2 nodes
+    rclpy.init()
+    add_action_sub()
+
     while simulation_app.is_running():
-        action = torch.zeros((1, 12))
+        action = go2_isaac_ros2.env.get_action(env)
         obs, _ = env.step(action)
