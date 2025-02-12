@@ -11,6 +11,7 @@ from isaaclab.terrains import TerrainImporterCfg
 from isaaclab_assets.robots.unitree import UNITREE_GO2_CFG
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
+from isaaclab.managers import SceneEntityCfg
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 
 
@@ -74,17 +75,11 @@ class ViewerCfg:
     """Configuration of the scene viewport camera."""
 
     eye: tuple[float, float, float] = (7.5, 7.5, 7.5)
-
     lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
-
     cam_prim_path: str = "/OmniverseKit_Persp"
-
     resolution: tuple[int, int] = (1920, 1080)
-
     origin_type: Literal["world", "env", "asset_root"] = "world"
-
     env_index: int = 0
-
     asset_name: str | None = None
 
 
@@ -96,12 +91,26 @@ class ObservationsCfg:
     class ObsCfg(ObsGroup):
         """Observations for policy group."""
 
-        joint_pos = ObsTerm(func=mdp.joint_pos)
-        joint_vel = ObsTerm(func=mdp.joint_vel)
+        joint_pos = ObsTerm(
+            func=mdp.joint_pos,
+            params={
+                "asset_cfg": SceneEntityCfg(
+                    name="robot", joint_names=JOINT_NAMES, preserve_order=True
+                )
+            },
+        )
+        joint_vel = ObsTerm(
+            func=mdp.joint_vel,
+            params={
+                "asset_cfg": SceneEntityCfg(
+                    name="robot", joint_names=JOINT_NAMES, preserve_order=True
+                )
+            },
+        )
 
         def __post_init__(self):
             self.enable_corruption = False
-            self.concatenate_terms = True
+            self.concatenate_terms = False
 
     # observation groups
     obs: ObsCfg = ObsCfg()
@@ -138,7 +147,7 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedEnvCfg):
     def __post_init__(self):
         """Post initialization."""
         # general settings
-        self.decimation = 2
+        self.decimation = 1
         # simulation settings
         self.sim.dt = 0.005
         self.sim.disable_contact_processing = True
@@ -153,6 +162,7 @@ class UnitreeGo2CustomEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         dc_motor_cfg = UNITREE_GO2_CFG.actuators["base_legs"]
         dc_motor_cfg = dc_motor_cfg.replace(
+            joint_names_expr=JOINT_NAMES,
             stiffness=JOINT_STIFFNESS,
         )
 

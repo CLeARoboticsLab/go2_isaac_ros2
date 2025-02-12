@@ -10,7 +10,7 @@ import go2_isaac_ros2.env
 from go2_isaac_ros2.env import UnitreeGo2CustomEnvCfg
 from isaaclab.envs import ManagerBasedEnv
 import rclpy
-from go2_isaac_ros2.ros import add_lowcmd_sub
+from go2_isaac_ros2.ros import add_lowcmd_sub, Go2PubNode
 
 
 def run_sim():
@@ -26,7 +26,9 @@ def run_sim():
     # start ros2 nodes
     rclpy.init()
     add_lowcmd_sub()
+    go2_pub_node = Go2PubNode()
 
     while simulation_app.is_running():
         action = go2_isaac_ros2.env.get_action(env)
         obs, _ = env.step(action)
+        go2_pub_node.publish(obs)

@@ -1,8 +1,9 @@
 import rclpy
+from rclpy.node import Node
 import threading
 import torch
 
-from unitree_go.msg import LowCmd
+from unitree_go.msg import LowCmd, LowState
 from go2_isaac_ros2.env import set_action
 
 
@@ -24,3 +25,21 @@ def lowcmd_cb(msg: LowCmd):
     for i in range(12):
         action[i] = msg.motor_cmd[i].q
     set_action(action.unsqueeze(0))
+
+
+class Go2PubNode(Node):
+    def __init__(self):
+        super().__init__("go2_pub_node")
+
+        self.low_state_pub = self.create_publisher(LowState, "/lowstate", 10)
+
+    def publish(self, obs: dict):
+        self._pub_low_state(obs)
+
+    def _pub_low_state(self, obs: dict):
+        msg = LowState()
+        for i in range(12):
+            msg.motor_state[i].q = obs["obs"]["joint_pos"][0, i].item()
+            msg.motor_state[i].dq = obs["obs"]["joint_vel"][0, i].item()
+        # TODO IMU
+        self.low_state_pub.publish(msg)
