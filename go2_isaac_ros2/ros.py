@@ -38,8 +38,20 @@ class Go2PubNode(Node):
 
     def _pub_low_state(self, obs: dict):
         msg = LowState()
+
         for i in range(12):
             msg.motor_state[i].q = obs["obs"]["joint_pos"][0, i].item()
             msg.motor_state[i].dq = obs["obs"]["joint_vel"][0, i].item()
-        # TODO IMU
+
+        msg.imu_state.quaternion[0] = obs["obs"]["imu_body_orientation"][0, 1].item()
+        msg.imu_state.quaternion[1] = obs["obs"]["imu_body_orientation"][0, 2].item()
+        msg.imu_state.quaternion[2] = obs["obs"]["imu_body_orientation"][0, 3].item()
+        msg.imu_state.quaternion[3] = obs["obs"]["imu_body_orientation"][0, 0].item()
+        msg.imu_state.gyroscope[0] = obs["obs"]["imu_body_ang_vel"][0, 0].item()
+        msg.imu_state.gyroscope[1] = obs["obs"]["imu_body_ang_vel"][0, 1].item()
+        msg.imu_state.gyroscope[2] = obs["obs"]["imu_body_ang_vel"][0, 2].item()
+        msg.imu_state.accelerometer[0] = obs["obs"]["imu_body_lin_acc"][0, 0].item()
+        msg.imu_state.accelerometer[1] = obs["obs"]["imu_body_lin_acc"][0, 1].item()
+        msg.imu_state.accelerometer[2] = obs["obs"]["imu_body_lin_acc"][0, 2].item()
+
         self.low_state_pub.publish(msg)

@@ -8,6 +8,7 @@ from isaaclab.envs import ManagerBasedEnvCfg
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.terrains import TerrainImporterCfg
+from isaaclab.sensors import ImuCfg
 from isaaclab_assets.robots.unitree import UNITREE_GO2_CFG
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
@@ -29,9 +30,24 @@ JOINT_NAMES = [
     "RL_thigh_joint",
     "RL_calf_joint",
 ]
+STANDING_JOINT_ANGLES = [0.0, 0.67, -1.3] * 4
+PRONE_JOINT_ANGLES = [
+    -0.35,
+    1.36,
+    -2.65,
+    0.35,
+    1.36,
+    -2.65,
+    -0.5,
+    1.36,
+    -2.65,
+    0.5,
+    1.36,
+    -2.65,
+]
 JOINT_STIFFNESS = 100.0
 
-action_global = torch.zeros((1, 12))
+action_global = torch.tensor(PRONE_JOINT_ANGLES, dtype=torch.float32).unsqueeze(0)
 
 
 def set_action(action: torch.Tensor) -> None:
@@ -57,6 +73,12 @@ class MySceneCfg(InteractiveSceneCfg):
 
     # robots
     robot: ArticulationCfg = MISSING
+
+    # sensors
+    imu_body = ImuCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base",
+        offset=ImuCfg.OffsetCfg(pos=(-0.02557, 0.0, 0.04232)),
+    )
 
     # lights
     light = AssetBaseCfg(
@@ -105,6 +127,24 @@ class ObservationsCfg:
                 "asset_cfg": SceneEntityCfg(
                     name="robot", joint_names=JOINT_NAMES, preserve_order=True
                 )
+            },
+        )
+        imu_body_orientation = ObsTerm(
+            func=mdp.imu_orientation,
+            params={
+                "asset_cfg": SceneEntityCfg(name="imu_body"),
+            },
+        )
+        imu_body_ang_vel = ObsTerm(
+            func=mdp.imu_ang_vel,
+            params={
+                "asset_cfg": SceneEntityCfg(name="imu_body"),
+            },
+        )
+        imu_body_lin_acc = ObsTerm(
+            func=mdp.imu_lin_acc,
+            params={
+                "asset_cfg": SceneEntityCfg(name="imu_body"),
             },
         )
 
