@@ -16,9 +16,11 @@ from go2_isaac_ros2.ros import add_lowcmd_sub, Go2PubNode
 def run_sim():
     ext_manager = omni.kit.app.get_app().get_extension_manager()
     ext_manager.set_extension_enabled_immediate("isaacsim.ros2.bridge", True)
+    timeline = omni.timeline.get_timeline_interface()
 
     env_cfg = UnitreeGo2CustomEnvCfg()
     env = ManagerBasedEnv(env_cfg)
+    head_lidar_annotator = go2_isaac_ros2.env.add_head_lidar()
 
     # reset environment
     obs, _ = env.reset()
@@ -26,9 +28,10 @@ def run_sim():
     # start ros2 nodes
     rclpy.init()
     add_lowcmd_sub()
-    go2_pub_node = Go2PubNode()
+    go2_pub_node = Go2PubNode(head_lidar_annotator)
 
     while simulation_app.is_running():
         action = go2_isaac_ros2.env.get_action(env)
         obs, _ = env.step(action)
-        go2_pub_node.publish(obs)
+        sim_time_sec = timeline.get_current_time()
+        go2_pub_node.publish(obs, sim_time_sec)

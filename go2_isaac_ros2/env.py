@@ -1,11 +1,14 @@
 from dataclasses import MISSING
 from typing import Literal
 import torch
+import omni.kit.commands
+import omni.replicator.core as rep
+from pxr import Gf
 
 from isaaclab.utils import configclass
 import isaaclab.sim as sim_utils
 from isaaclab.envs import ManagerBasedEnvCfg
-from isaaclab.assets import ArticulationCfg, AssetBaseCfg
+from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.sensors import ImuCfg
@@ -89,6 +92,23 @@ class MySceneCfg(InteractiveSceneCfg):
     sky_light = AssetBaseCfg(
         prim_path="/World/skyLight",
         spawn=sim_utils.DomeLightCfg(color=(0.13, 0.13, 0.13), intensity=1000.0),
+    )
+
+    # add a block for now so that LIO works
+    block = AssetBaseCfg(
+        prim_path="/World/block",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.5, 0.5, 0.5),
+            visual_material=sim_utils.PreviewSurfaceCfg(
+                diffuse_color=(1.0, 0.0, 0.0), metallic=0.2
+            ),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                solver_position_iteration_count=4, solver_velocity_iteration_count=0
+            ),
+            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+        ),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(2.0, 2.0, 1.0)),
     )
 
 
@@ -210,3 +230,24 @@ class UnitreeGo2CustomEnvCfg(LocomotionVelocityRoughEnvCfg):
             prim_path="{ENV_REGEX_NS}/Robot",
             actuators={"base_legs": dc_motor_cfg},
         )
+
+
+def add_head_lidar():
+    _, head_lidar = omni.kit.commands.execute(
+        "IsaacSensorCreateRtxLidar",
+        path="/World/envs/env_0/Robot/base/head_lidar",
+        parent="/World/envs/env_0/Robot/base",
+        translation=(0.3, 0.0, -0.0762),
+        orientation=Gf.Quatd(0.1313147, 0, 0.9913407, 0),
+        config="Unitree_L1",
+        # config="Hesai_XT32_SD10",
+    )
+
+    render_product = rep.create.render_product(head_lidar.GetPath(), [1, 1])
+
+    annotator = rep.AnnotatorRegistry.get_annotator(
+        "RtxSensorCpuIsaacCreateRTXLidarScanBuffer"
+    )
+    annotator.attach(render_product)
+
+    return annotator
