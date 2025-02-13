@@ -98,9 +98,9 @@ class MySceneCfg(InteractiveSceneCfg):
     block = AssetBaseCfg(
         prim_path="/World/block",
         spawn=sim_utils.CuboidCfg(
-            size=(0.5, 0.5, 0.5),
+            size=(1.0, 1.5, 0.75),
             visual_material=sim_utils.PreviewSurfaceCfg(
-                diffuse_color=(1.0, 0.0, 0.0), metallic=0.2
+                diffuse_color=(0.8, 0.0, 0.0), metallic=0.2
             ),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 solver_position_iteration_count=4, solver_velocity_iteration_count=0
@@ -108,7 +108,7 @@ class MySceneCfg(InteractiveSceneCfg):
             mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
             collision_props=sim_utils.CollisionPropertiesCfg(),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(2.0, 2.0, 1.0)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(1.5, 2.0, 1.0)),
     )
 
 
