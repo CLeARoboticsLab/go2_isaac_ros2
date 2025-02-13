@@ -192,17 +192,10 @@ class ActionsCfg:
 class LocomotionVelocityRoughEnvCfg(ManagerBasedEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
-    # Scene settings
     scene: MySceneCfg = MySceneCfg(num_envs=1, env_spacing=2.5)
     viewer: ViewerCfg = ViewerCfg()
-    # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
-    # commands: CommandsCfg = CommandsCfg()
-    # MDP settings
-    # rewards: RewardsCfg = RewardsCfg()
-    # terminations: TerminationsCfg = TerminationsCfg()
-    # events: EventCfg = EventCfg()
 
     def __post_init__(self):
         """Post initialization."""
@@ -240,7 +233,6 @@ def add_head_lidar():
         translation=(0.3, 0.0, -0.0762),
         orientation=Gf.Quatd(0.1313147, 0, 0.9913407, 0),
         config="Unitree_L1",
-        # config="Hesai_XT32_SD10",
     )
 
     render_product = rep.create.render_product(head_lidar.GetPath(), [1, 1])
