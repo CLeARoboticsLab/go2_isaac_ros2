@@ -228,9 +228,9 @@ class UnitreeGo2CustomEnvCfg(LocomotionVelocityRoughEnvCfg):
 def add_head_lidar():
     _, head_lidar = omni.kit.commands.execute(
         "IsaacSensorCreateRtxLidar",
-        path="/World/envs/env_0/Robot/base/head_lidar",
+        path="head_lidar",
         parent="/World/envs/env_0/Robot/base",
-        translation=(0.3, 0.0, -0.0762),
+        translation=(0.36, 0.0, -0.12),  # is outside of the base mesh
         orientation=Gf.Quatd(0.1313147, 0, 0.9913407, 0),
         config="Unitree_L1",
     )
