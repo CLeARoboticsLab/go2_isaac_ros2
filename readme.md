@@ -4,13 +4,11 @@
 
 This package allows **low-level** (or joint-level), ROS2 control of a Unitree Go2 quadruped robot being simulated in Isaac Sim. This package is built on top of [IsaacLab](https://github.com/isaac-sim/IsaacLab).
 
-
 | Tested With        | Version   |
 |--------------------|----------|
 | Ubuntu            | 22.04    |
 | ROS2              | Humble   |
 | Isaac Sim         | 4.5.0    |
-| Isaac Lab         | 2.0.0    |
 
 TODO:
 
@@ -61,13 +59,9 @@ source /opt/ros/humble/setup.bash
 colcon build
 ```
 
-Next, you will need to copy the Unitree_L1.json file from this package into Isaac Sim's LIDAR config files. Use the following, replacing `<PATH_TO_ISAAC_SIM>` with the path to your Isaac Sim installation. For a miniconda environment, this could look like `~/miniforge3/envs/tyswy/lib/python3.10/site-packages/isaacsim/`.
+⚠️ You may have to build the workspace multiple times to resolve all dependencies.
 
-```bash
-cp ~/go2_isaac_ros2_ws/src/go2_isaac_ros/Unitree_L1.json <PATH_TO_ISAAC_SIM>/exts/isaacsim.sensors.rtx/data/lidar_configs/
-```
-
-⚠️ Note, as of 2025-02-12, [this PR](https://github.com/isaac-sim/IsaacLab/pull/1809) is required to use the LIDAR sensor in Isaac Sim. This PR has not yet been merged into Isaac Lab. You will manually need to edit `IsaacLab/source/isaaclab/isaaclab/envs/manager_based_env.py` per [this comment](https://github.com/isaac-sim/IsaacLab/issues/1423#issuecomment-2484033748).
+⚠️ [This PR](https://github.com/isaac-sim/IsaacLab/pull/1809) is required to use the IMU sensor in Isaac Sim. Ensure this PR has been merged into your clone of Isaac Lab.
 
 ## Usage
 
@@ -88,4 +82,4 @@ Note: `/clock` is also published by this package to allow for time synchronizati
 
 ## Acknowledgements
 
-This package is based on the [go2_omniverse](https://github.com/abizovnuralem/go2_omniverse) package by @abizovnuralem.
+This package was inspired by the [go2_omniverse](https://github.com/abizovnuralem/go2_omniverse) package by @abizovnuralem.
