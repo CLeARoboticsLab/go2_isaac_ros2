@@ -1,9 +1,6 @@
 from dataclasses import MISSING
 from typing import Literal
 import torch
-import omni.kit.commands
-import omni.replicator.core as rep
-from pxr import Gf
 
 from isaaclab.utils import configclass
 import isaaclab.sim as sim_utils
@@ -223,23 +220,3 @@ class UnitreeGo2CustomEnvCfg(LocomotionVelocityRoughEnvCfg):
             prim_path="{ENV_REGEX_NS}/Robot",
             actuators={"base_legs": dc_motor_cfg},
         )
-
-
-def add_head_lidar():
-    _, head_lidar = omni.kit.commands.execute(
-        "IsaacSensorCreateRtxLidar",
-        path="head_lidar",
-        parent="/World/envs/env_0/Robot/base",
-        translation=(0.36, 0.0, -0.12),  # is outside of the base mesh
-        orientation=Gf.Quatd(0.1313147, 0, 0.9913407, 0),
-        config="Unitree_L1",
-    )
-
-    render_product = rep.create.render_product(head_lidar.GetPath(), [1, 1])
-
-    annotator = rep.AnnotatorRegistry.get_annotator(
-        "RtxSensorCpuIsaacCreateRTXLidarScanBuffer"
-    )
-    annotator.attach(render_product)
-
-    return annotator
