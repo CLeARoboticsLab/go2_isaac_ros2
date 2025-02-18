@@ -16,7 +16,7 @@ TODO:
 |--------|--------------------------------------|
 | ✅ | Joint position targets             |
 | ⬜ | Joint velocity targets                |
-| ⬜ | Joint-level specification of Kp and Kd (proportional and derivative gain) |
+| ✅ | Joint-level specification of Kp and Kd (proportional and derivative gain) |
 | ❌ | Joint torque control   |
 | ✅ | Joint state and IMU      |
 | ✅ | Head LiDAR  |

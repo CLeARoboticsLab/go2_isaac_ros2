@@ -48,6 +48,7 @@ PRONE_JOINT_ANGLES = [
     -2.65,
 ]
 JOINT_STIFFNESS = 25.0
+JOINT_DAMPING = 0.5
 
 
 @configclass
@@ -244,6 +245,7 @@ class UnitreeGo2CustomEnvCfg(LocomotionVelocityRoughEnvCfg):
         dc_motor_cfg = dc_motor_cfg.replace(
             joint_names_expr=JOINT_NAMES,
             stiffness=JOINT_STIFFNESS,
+            damping=JOINT_DAMPING,
         )
 
         self.scene.robot = UNITREE_GO2_CFG.replace(
@@ -265,6 +267,7 @@ class IsaacSimGo2EnvWrapper:
         for i, name in enumerate(JOINT_NAMES):
             self.joint_ids[i] = env.scene.articulations["robot"].find_joints(name)[0][0]
         self.set_stiffness(torch.tensor([JOINT_STIFFNESS] * 12, dtype=torch.float32))
+        self.set_damping(torch.tensor([JOINT_DAMPING] * 12, dtype=torch.float32))
 
     def reset(self):
         return self._env.reset()
@@ -284,3 +287,11 @@ class IsaacSimGo2EnvWrapper:
             self._env.scene.articulations["robot"].actuators[
                 "base_legs"
             ].stiffness = stiffness
+
+    def set_damping(self, damping: torch.Tensor):
+        with self.lock:
+            damping = damping[self.joint_ids]
+            damping = damping.unsqueeze(0).to(self.device)
+            self._env.scene.articulations["robot"].actuators[
+                "base_legs"
+            ].damping = damping

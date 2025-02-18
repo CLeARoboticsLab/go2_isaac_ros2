@@ -23,11 +23,14 @@ class Go2SubNode(Node):
     def lowcmd_cb(self, msg: LowCmd):
         action = torch.zeros(12)
         stiffness = torch.zeros(12)
+        damping = torch.zeros(12)
         for i in range(12):
             action[i] = msg.motor_cmd[i].q
             stiffness[i] = msg.motor_cmd[i].kp
+            damping[i] = msg.motor_cmd[i].kd
         self.env.set_action(action)
         self.env.set_stiffness(stiffness)
+        self.env.set_damping(damping)
 
     def start(self):
         self.thead.start()
