@@ -2,35 +2,35 @@ import rclpy
 from rclpy.node import Node
 import threading
 import torch
-import numpy as np
 
 from rosgraph_msgs.msg import Clock
 from unitree_go.msg import LowCmd, LowState
 from std_msgs.msg import Header
 from sensor_msgs.msg import PointCloud2, PointField
 from sensor_msgs_py import point_cloud2
-from go2_isaac_ros2.env import set_action
+from go2_isaac_ros2.env import IsaacSimGo2EnvWrapper
 from go2_isaac_ros2.lidar import get_head_lidar_pointcloud
 
 
-def add_lowcmd_sub():  # todo: this should actually sub to /lowcmd
-    lowcmd_sub = rclpy.create_node("lowcmd_sub")
-    lowcmd_sub.create_subscription(
-        LowCmd,
-        "/lowcmd",
-        lowcmd_cb,
-        1,
-    )
-    # Spin in a separate thread
-    thread = threading.Thread(target=rclpy.spin, args=(lowcmd_sub,), daemon=True)
-    thread.start()
+class Go2SubNode(Node):
+    def __init__(self, env: IsaacSimGo2EnvWrapper):
+        super().__init__("go2_sub_node")
 
+        self.lowcmd_sub = self.create_subscription(LowCmd, "/lowcmd", self.lowcmd_cb, 1)
+        self.thead = threading.Thread(target=rclpy.spin, args=(self,), daemon=True)
+        self.env = env
 
-def lowcmd_cb(msg: LowCmd):
-    action = torch.zeros(12)
-    for i in range(12):
-        action[i] = msg.motor_cmd[i].q
-    set_action(action.unsqueeze(0))
+    def lowcmd_cb(self, msg: LowCmd):
+        action = torch.zeros(12)
+        stiffness = torch.zeros(12)
+        for i in range(12):
+            action[i] = msg.motor_cmd[i].q
+            stiffness[i] = msg.motor_cmd[i].kp
+        self.env.set_action(action)
+        self.env.set_stiffness(stiffness)
+
+    def start(self):
+        self.thead.start()
 
 
 class Go2PubNode(Node):

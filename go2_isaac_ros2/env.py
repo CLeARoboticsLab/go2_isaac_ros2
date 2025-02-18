@@ -1,10 +1,11 @@
 from dataclasses import MISSING
 from typing import Literal
 import torch
+import threading
 
 from isaaclab.utils import configclass
 import isaaclab.sim as sim_utils
-from isaaclab.envs import ManagerBasedEnvCfg
+from isaaclab.envs import ManagerBasedEnvCfg, ManagerBasedEnv, VecEnvObs
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.terrains import TerrainImporterCfg
@@ -13,6 +14,7 @@ from isaaclab_assets.robots.unitree import UNITREE_GO2_CFG
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import EventTermCfg as EventTerm
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 
 
@@ -45,19 +47,7 @@ PRONE_JOINT_ANGLES = [
     1.36,
     -2.65,
 ]
-JOINT_STIFFNESS = 100.0
-
-action_global = torch.tensor(PRONE_JOINT_ANGLES, dtype=torch.float32).unsqueeze(0)
-
-
-def set_action(action: torch.Tensor) -> None:
-    global action_global
-    action_global = action
-
-
-def get_action(env: ManagerBasedEnvCfg) -> torch.Tensor:
-    global action_global
-    return action_global.to(env.device)
+JOINT_STIFFNESS = 25.0
 
 
 @configclass
@@ -68,6 +58,12 @@ class MySceneCfg(InteractiveSceneCfg):
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
         terrain_type="plane",
+        physics_material=sim_utils.RigidBodyMaterialCfg(
+            friction_combine_mode="multiply",
+            restitution_combine_mode="multiply",
+            static_friction=1.0,
+            dynamic_friction=1.0,
+        ),
         debug_vis=False,
     )
 
@@ -91,9 +87,9 @@ class MySceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.DomeLightCfg(color=(0.13, 0.13, 0.13), intensity=1000.0),
     )
 
-    # add a block for now so that LIO works
-    block = AssetBaseCfg(
-        prim_path="/World/block",
+    # add a blocks for now so that LIO works
+    block1 = AssetBaseCfg(
+        prim_path="/World/block1",
         spawn=sim_utils.CuboidCfg(
             size=(1.0, 1.5, 0.75),
             visual_material=sim_utils.PreviewSurfaceCfg(
@@ -106,6 +102,21 @@ class MySceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(1.5, 2.0, 1.0)),
+    )
+    block2 = AssetBaseCfg(
+        prim_path="/World/block2",
+        spawn=sim_utils.CuboidCfg(
+            size=(1.0, 2.5, 0.75),
+            visual_material=sim_utils.PreviewSurfaceCfg(
+                diffuse_color=(0.0, 0.0, 0.8), metallic=0.2
+            ),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                solver_position_iteration_count=4, solver_velocity_iteration_count=0
+            ),
+            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+        ),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(5.5, -4.5, 1.0)),
     )
 
 
@@ -186,6 +197,24 @@ class ActionsCfg:
 
 
 @configclass
+class EventCfg:
+    """Configuration for events."""
+
+    # startup
+    physics_material = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+            "static_friction_range": (0.8, 0.8),  # Friction will be deterministic
+            "dynamic_friction_range": (0.6, 0.6),
+            "restitution_range": (0.0, 0.0),
+            "num_buckets": 1,
+        },
+    )
+
+
+@configclass
 class LocomotionVelocityRoughEnvCfg(ManagerBasedEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
@@ -193,6 +222,7 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedEnvCfg):
     viewer: ViewerCfg = ViewerCfg()
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
+    events: EventCfg = EventCfg()
 
     def __post_init__(self):
         """Post initialization."""
@@ -220,3 +250,37 @@ class UnitreeGo2CustomEnvCfg(LocomotionVelocityRoughEnvCfg):
             prim_path="{ENV_REGEX_NS}/Robot",
             actuators={"base_legs": dc_motor_cfg},
         )
+
+
+class IsaacSimGo2EnvWrapper:
+    def __init__(self, env: ManagerBasedEnv):
+        self._env = env
+        self.device = self._env.device
+        self.lock = threading.Lock()
+
+        self.action = torch.tensor(PRONE_JOINT_ANGLES, dtype=torch.float32)
+        self.set_action(self.action)
+
+        self.joint_ids = torch.zeros(12, dtype=torch.int32)
+        for i, name in enumerate(JOINT_NAMES):
+            self.joint_ids[i] = env.scene.articulations["robot"].find_joints(name)[0][0]
+        self.set_stiffness(torch.tensor([JOINT_STIFFNESS] * 12, dtype=torch.float32))
+
+    def reset(self):
+        return self._env.reset()
+
+    def step(self, action_unused=None) -> tuple[VecEnvObs, dict]:
+        with self.lock:
+            return self._env.step(self.action)
+
+    def set_action(self, action: torch.Tensor):
+        with self.lock:
+            self.action = action.unsqueeze(0).to(self.device)
+
+    def set_stiffness(self, stiffness: torch.Tensor):
+        with self.lock:
+            stiffness = stiffness[self.joint_ids]
+            stiffness = stiffness.unsqueeze(0).to(self.device)
+            self._env.scene.articulations["robot"].actuators[
+                "base_legs"
+            ].stiffness = stiffness

@@ -6,12 +6,11 @@ app_launcher = AppLauncher()
 simulation_app = app_launcher.app
 
 import omni
-import go2_isaac_ros2.env
-from go2_isaac_ros2.env import UnitreeGo2CustomEnvCfg
+from go2_isaac_ros2.env import UnitreeGo2CustomEnvCfg, IsaacSimGo2EnvWrapper
 from isaaclab.envs import ManagerBasedEnv
 from go2_isaac_ros2.lidar import add_head_lidar
 import rclpy
-from go2_isaac_ros2.ros import add_lowcmd_sub, Go2PubNode
+from go2_isaac_ros2.ros import Go2PubNode, Go2SubNode
 
 
 def run_sim():
@@ -22,6 +21,7 @@ def run_sim():
     # create environment
     env_cfg = UnitreeGo2CustomEnvCfg()
     env = ManagerBasedEnv(env_cfg)
+    env = IsaacSimGo2EnvWrapper(env)
     add_head_lidar()
 
     # reset environment
@@ -29,11 +29,13 @@ def run_sim():
 
     # start ros2 nodes
     rclpy.init()
-    add_lowcmd_sub()
     go2_pub_node = Go2PubNode()
+    go2_sub_node = Go2SubNode(env)
+    go2_sub_node.start()
 
     while simulation_app.is_running():
-        action = go2_isaac_ros2.env.get_action(env)
-        obs, _ = env.step(action)
+        obs, _ = env.step()
         sim_time_sec = timeline.get_current_time()
         go2_pub_node.publish(obs, sim_time_sec)
+
+    rclpy.shutdown()
