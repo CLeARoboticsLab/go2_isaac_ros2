@@ -11,6 +11,7 @@ from isaaclab.envs import ManagerBasedEnv
 from go2_isaac_ros2.lidar import add_head_lidar
 import rclpy
 from go2_isaac_ros2.ros import Go2PubNode, Go2SubNode
+import time
 
 
 def run_sim():
@@ -34,8 +35,14 @@ def run_sim():
     go2_sub_node.start()
 
     while simulation_app.is_running():
+        start_time = time.time()
         obs, _ = env.step()
         sim_time_sec = timeline.get_current_time()
         go2_pub_node.publish(obs, sim_time_sec)
+
+        # time delay to keep simulation at or below real time
+        sleep_time = env.dt - (time.time() - start_time)
+        if sleep_time > 0:
+            time.sleep(sleep_time)
 
     rclpy.shutdown()

@@ -18,6 +18,8 @@ from isaaclab.managers import EventTermCfg as EventTerm
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 
 
+SIM_DT = 0.005
+SIM_RENDER_INTERVAL = 4
 JOINT_NAMES = [
     "FR_hip_joint",
     "FR_thigh_joint",
@@ -47,7 +49,7 @@ PRONE_JOINT_ANGLES = [
     1.36,
     -2.65,
 ]
-JOINT_STIFFNESS = 25.0
+JOINT_STIFFNESS = 75.0
 JOINT_DAMPING = 0.5
 
 
@@ -230,7 +232,8 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedEnvCfg):
         # general settings
         self.decimation = 1
         # simulation settings
-        self.sim.dt = 0.005
+        self.sim.dt = SIM_DT
+        self.sim.render_interval = SIM_RENDER_INTERVAL
         self.sim.disable_contact_processing = True
         self.sim.physics_material = self.scene.terrain.physics_material
 
@@ -274,7 +277,11 @@ class IsaacSimGo2EnvWrapper:
 
     def step(self, action_unused=None) -> tuple[VecEnvObs, dict]:
         with self.lock:
-            return self._env.step(self.action)
+            with torch.inference_mode():
+                return self._env.step(self.action)
+
+    def close(self):
+        return self._env.close()
 
     def set_action(self, action: torch.Tensor):
         with self.lock:
@@ -295,3 +302,7 @@ class IsaacSimGo2EnvWrapper:
             self._env.scene.articulations["robot"].actuators[
                 "base_legs"
             ].damping = damping
+
+    @property
+    def dt(self) -> float:
+        return self._env.physics_dt
