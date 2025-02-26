@@ -1,8 +1,8 @@
 # go2_isaac_ros2
 
-![screenshot](media/screenshot.png)
+![animation](media/animation.gif)
 
-This package allows **low-level** (or joint-level), ROS2 control of a Unitree Go2 quadruped robot being simulated in Isaac Sim. This package is built on top of [IsaacLab](https://github.com/isaac-sim/IsaacLab).
+This package allows **low-level** (or joint-level), ROS2 control of a Unitree Go2 quadruped robot being simulated in Isaac Sim. This package is built on top of [IsaacLab](https://github.com/isaac-sim/IsaacLab). This package is meant to emulate the low-level control mode of the Go2. Here, the robot is controlled by specifying joint position targets and gains to the topic `/lowcmd`. In low-level control mode, sports mode is [disabled](https://support.unitree.com/home/en/developer/Quick_start), so only low-level readings (like joint angles, joint velocities, IMU, and the raw lidar cloud) are available on the `/lowstate` and `/utlidar/cloud` topics.
 
 | Tested With        | Version   |
 |--------------------|----------|
@@ -68,8 +68,7 @@ colcon build
 First, start the simulator:
 
 ```bash
-cd ~/go2_isaac_ros2
-source install/setup.bash
+source ~/go2_isaac_ros2_ws/install/setup.bash
 conda activate go2_isaac_ros2
 ros2 launch go2_isaac_ros2 launch_sim.py
 ```
