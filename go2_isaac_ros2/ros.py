@@ -8,6 +8,7 @@ from unitree_go.msg import LowCmd, LowState
 from std_msgs.msg import Header
 from sensor_msgs.msg import PointCloud2, PointField
 from sensor_msgs_py import point_cloud2
+from geometry_msgs.msg import Twist
 from go2_isaac_ros2.env import IsaacSimGo2EnvWrapper
 from go2_isaac_ros2.lidar import get_head_lidar_pointcloud
 
@@ -43,12 +44,16 @@ class Go2PubNode(Node):
         self.clock_pub = self.create_publisher(Clock, "/clock", 10)
         self.low_state_pub = self.create_publisher(LowState, "/lowstate", 10)
         self.head_lidar_pub = self.create_publisher(PointCloud2, "utlidar/cloud", 10)
+        self.ground_truth_twist_pub = self.create_publisher(
+            Twist, "/ground_truth/twist", 10
+        )
         self.clock_msg = None
 
     def publish(self, obs: dict, sim_time_sec: float):
         self._pub_clock(sim_time_sec)
         self._pub_low_state(obs)
         self._pub_head_lidar()
+        self._pub_ground_truth(obs)
 
     def _pub_clock(self, sim_time_sec: float):
         msg = Clock()
@@ -65,10 +70,10 @@ class Go2PubNode(Node):
             msg.motor_state[i].q = obs["obs"]["joint_pos"][0, i].item()
             msg.motor_state[i].dq = obs["obs"]["joint_vel"][0, i].item()
 
-        msg.imu_state.quaternion[0] = obs["obs"]["imu_body_orientation"][0, 1].item()
-        msg.imu_state.quaternion[1] = obs["obs"]["imu_body_orientation"][0, 2].item()
-        msg.imu_state.quaternion[2] = obs["obs"]["imu_body_orientation"][0, 3].item()
-        msg.imu_state.quaternion[3] = obs["obs"]["imu_body_orientation"][0, 0].item()
+        msg.imu_state.quaternion[0] = obs["obs"]["imu_body_orientation"][0, 0].item()
+        msg.imu_state.quaternion[1] = obs["obs"]["imu_body_orientation"][0, 1].item()
+        msg.imu_state.quaternion[2] = obs["obs"]["imu_body_orientation"][0, 2].item()
+        msg.imu_state.quaternion[3] = obs["obs"]["imu_body_orientation"][0, 3].item()
         msg.imu_state.gyroscope[0] = obs["obs"]["imu_body_ang_vel"][0, 0].item()
         msg.imu_state.gyroscope[1] = obs["obs"]["imu_body_ang_vel"][0, 1].item()
         msg.imu_state.gyroscope[2] = obs["obs"]["imu_body_ang_vel"][0, 2].item()
@@ -99,6 +104,16 @@ class Go2PubNode(Node):
 
         pcl_msg = point_cloud2.create_cloud(header, fields, pcl)
         self.head_lidar_pub.publish(pcl_msg)
+
+    def _pub_ground_truth(self, obs: dict):
+        msg = Twist()
+        msg.linear.x = obs["obs"]["body_lin_vel"][0, 0].item()
+        msg.linear.y = obs["obs"]["body_lin_vel"][0, 1].item()
+        msg.linear.z = obs["obs"]["body_lin_vel"][0, 2].item()
+        msg.angular.x = obs["obs"]["body_ang_vel"][0, 0].item()
+        msg.angular.y = obs["obs"]["body_ang_vel"][0, 1].item()
+        msg.angular.z = obs["obs"]["body_ang_vel"][0, 2].item()
+        self.ground_truth_twist_pub.publish(msg)
 
     def _clock_to_sec(self, clock_msg: Clock) -> float:
         return clock_msg.clock.sec + clock_msg.clock.nanosec / 1e9

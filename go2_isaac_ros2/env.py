@@ -179,6 +179,9 @@ class ObservationsCfg:
             },
         )
 
+        body_lin_vel = ObsTerm(func=mdp.base_lin_vel)
+        body_ang_vel = ObsTerm(func=mdp.base_ang_vel)
+
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False
