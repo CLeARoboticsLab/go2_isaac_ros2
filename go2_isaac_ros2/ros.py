@@ -8,9 +8,14 @@ from unitree_go.msg import LowCmd, LowState
 from std_msgs.msg import Header
 from sensor_msgs.msg import PointCloud2, PointField
 from sensor_msgs_py import point_cloud2
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, PoseStamped, TwistStamped
 from go2_isaac_ros2.env import IsaacSimGo2EnvWrapper
 from go2_isaac_ros2.lidar import get_head_lidar_pointcloud
+
+
+GROUND_TRUTH_TWIST_TOPIC = "/ground_truth/twist"
+GROUND_TRUTH_WORLD_POSE_TOPIC = "/vrpn_mocap/go2/pose"
+GROUND_TRUTH_WORLD_TWIST_TOPIC = "/vrpn_mocap/go2/twist"
 
 
 class Go2SubNode(Node):
@@ -45,7 +50,13 @@ class Go2PubNode(Node):
         self.low_state_pub = self.create_publisher(LowState, "/lowstate", 10)
         self.head_lidar_pub = self.create_publisher(PointCloud2, "utlidar/cloud", 10)
         self.ground_truth_twist_pub = self.create_publisher(
-            Twist, "/ground_truth/twist", 10
+            Twist, GROUND_TRUTH_TWIST_TOPIC, 10
+        )
+        self.ground_truth_world_pose_pub = self.create_publisher(
+            PoseStamped, GROUND_TRUTH_WORLD_POSE_TOPIC, 10
+        )
+        self.ground_truth_world_twist_pub = self.create_publisher(
+            TwistStamped, GROUND_TRUTH_WORLD_TWIST_TOPIC, 10
         )
         self.clock_msg = None
 
@@ -106,14 +117,39 @@ class Go2PubNode(Node):
         self.head_lidar_pub.publish(pcl_msg)
 
     def _pub_ground_truth(self, obs: dict):
-        msg = Twist()
-        msg.linear.x = obs["obs"]["body_lin_vel"][0, 0].item()
-        msg.linear.y = obs["obs"]["body_lin_vel"][0, 1].item()
-        msg.linear.z = obs["obs"]["body_lin_vel"][0, 2].item()
-        msg.angular.x = obs["obs"]["body_ang_vel"][0, 0].item()
-        msg.angular.y = obs["obs"]["body_ang_vel"][0, 1].item()
-        msg.angular.z = obs["obs"]["body_ang_vel"][0, 2].item()
-        self.ground_truth_twist_pub.publish(msg)
+        twist = Twist()
+        twist.linear.x = obs["obs"]["body_lin_vel"][0, 0].item()
+        twist.linear.y = obs["obs"]["body_lin_vel"][0, 1].item()
+        twist.linear.z = obs["obs"]["body_lin_vel"][0, 2].item()
+        twist.angular.x = obs["obs"]["body_ang_vel"][0, 0].item()
+        twist.angular.y = obs["obs"]["body_ang_vel"][0, 1].item()
+        twist.angular.z = obs["obs"]["body_ang_vel"][0, 2].item()
+        self.ground_truth_twist_pub.publish(twist)
+
+        pose_w = PoseStamped()
+        pose_w.header.frame_id = "world"
+        pose_w.header.stamp.sec = self.clock_msg.clock.sec
+        pose_w.header.stamp.nanosec = self.clock_msg.clock.nanosec
+        pose_w.pose.position.x = obs["obs"]["world_pos"][0, 0].item()
+        pose_w.pose.position.y = obs["obs"]["world_pos"][0, 1].item()
+        pose_w.pose.position.z = obs["obs"]["world_pos"][0, 2].item()
+        pose_w.pose.orientation.x = obs["obs"]["world_quat"][0, 1].item()
+        pose_w.pose.orientation.y = obs["obs"]["world_quat"][0, 2].item()
+        pose_w.pose.orientation.z = obs["obs"]["world_quat"][0, 3].item()
+        pose_w.pose.orientation.w = obs["obs"]["world_quat"][0, 0].item()
+        self.ground_truth_world_pose_pub.publish(pose_w)
+
+        twist_w = TwistStamped()
+        twist_w.header.frame_id = "world"
+        twist_w.header.stamp.sec = self.clock_msg.clock.sec
+        twist_w.header.stamp.nanosec = self.clock_msg.clock.nanosec
+        twist_w.twist.linear.x = obs["obs"]["world_lin_vel"][0, 0].item()
+        twist_w.twist.linear.y = obs["obs"]["world_lin_vel"][0, 1].item()
+        twist_w.twist.linear.z = obs["obs"]["world_lin_vel"][0, 2].item()
+        twist_w.twist.angular.x = obs["obs"]["world_ang_vel"][0, 0].item()
+        twist_w.twist.angular.y = obs["obs"]["world_ang_vel"][0, 1].item()
+        twist_w.twist.angular.z = obs["obs"]["world_ang_vel"][0, 2].item()
+        self.ground_truth_world_twist_pub.publish(twist_w)
 
     def _clock_to_sec(self, clock_msg: Clock) -> float:
         return clock_msg.clock.sec + clock_msg.clock.nanosec / 1e9

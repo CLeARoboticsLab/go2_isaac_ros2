@@ -182,6 +182,11 @@ class ObservationsCfg:
         body_lin_vel = ObsTerm(func=mdp.base_lin_vel)
         body_ang_vel = ObsTerm(func=mdp.base_ang_vel)
 
+        world_pos = ObsTerm(func=mdp.root_pos_w)
+        world_quat = ObsTerm(func=mdp.root_quat_w)
+        world_lin_vel = ObsTerm(func=mdp.root_lin_vel_w)
+        world_ang_vel = ObsTerm(func=mdp.root_ang_vel_w)
+
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False
